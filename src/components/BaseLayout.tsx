@@ -10,7 +10,12 @@ interface ButtonData {
 
 const buttonsData: ButtonData[] = [
   {
-    id: "home",
+    id: "main",
+    text: "메인페이지",
+    path: "/main",
+  },
+  {
+    id: "my",
     text: "마이페이지",
     path: "/my",
   },
@@ -94,15 +99,6 @@ const MiddleMain = styled.div`
   justify-content: center;
 `;
 
-const Logo = styled.img`
-  margin: 30px 10px;
-  margin-bottom: 30px;
-  width: 120px;
-  &:hover {
-    cursor: pointer;
-  }
-`;
-
 const SidebarContainer = styled.div`
   height: 100vh;
   width: 100%;
@@ -114,18 +110,17 @@ const SidebarContainer = styled.div`
 const SidebarLayout = styled.div`
   display: flex;
   flex-direction: column;
-  margin-top: 1px;
-  margin-right: 8px;
 `;
 
 const Buttons = styled.button`
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 10px 10px;
   background-color: transparent;
   border: none;
   font-size: 23px;
-  margin-bottom: 18px;
+  margin: 18px 0;
   &:hover {
     background-color: #ececec;
     border-radius: 8px;
@@ -135,5 +130,4 @@ const Buttons = styled.button`
 
 const ButtonText = styled.span`
   font-size: 18px;
-  margin-left: 20px;
 `;
