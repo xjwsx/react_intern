@@ -1,35 +1,64 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { Colors } from "../styles/ColorStyle";
+import { login } from "../api/login";
+
+interface LoginFormValues {
+  id: string;
+  password: string;
+}
 
 const LoginPage: React.FC = () => {
-  const [username, setUsername] = useState<string>("");
+  const [id, setId] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent<HTMLButtonElement>): void => {
-    e.preventDefault();
-    if (!username || !password) {
+  const handleSubmit = () => {
+    if (!id || !password) {
       alert("아이디와 패스워드를 모두 입력해주세요.");
       return;
     }
-    localStorage.setItem("username", username);
-    navigate("/main");
+    onFinish({ id, password });
   };
 
   const gotoJoin = () => {
     navigate("/join");
   };
 
+  const onFinish = async (values: LoginFormValues): Promise<void> => {
+    try {
+      const response = await login(values);
+      console.log(response);
+      if (response.status === 200 || response.status === 201) {
+        if (response.data && response.data.accessToken) {
+          const { accessToken } = response.data;
+          localStorage.setItem("token", accessToken);
+          setId(values.id);
+        }
+        navigate("/main");
+      }
+    } catch (e: any) {
+      alert("아이디 비밀번호가 일치하지 않습니다.");
+      console.log(e);
+    }
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/korean");
+    }
+  }, []);
+
   return (
     <Wrapper className="login-container">
       <Input
         type="text"
-        name="username"
-        value={username}
+        name="id"
+        value={id}
         placeholder="전화번호, 사용자 이름 또는 이메일"
-        onChange={(e) => setUsername(e.target.value)}
+        onChange={(e) => setId(e.target.value)}
       />
       <Input
         type="password"
@@ -59,11 +88,11 @@ const Wrapper = styled.div`
 `;
 
 const Input = styled.input`
-  width: 100%;
+  width: 93%;
   line-height: 2rem;
   font-size: 0.8rem;
-  padding: 1% 0%;
-  margin: 1.2% 0;
+  padding: 5px 8px;
+  margin: 1.5% 0;
   background-color: ${Colors.borderGrey};
   border: 1px solid rgb(219, 219, 219);
   border-radius: 3px;
