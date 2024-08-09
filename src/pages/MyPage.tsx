@@ -1,24 +1,70 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { Colors } from "../styles/ColorStyle";
 import useUserStore from "../store/useUserStore";
 import api from "../api/axios";
+import defaultProfile from "../img/defaultProfile.jpg";
 
 const MyPage: React.FC = () => {
+  const refs = useRef<HTMLInputElement>(null);
   const [nickname, setNickname] = useState<string>("");
+  const [profile, setProfile] = useState<string>("");
   const [isChange, setIsChange] = useState<boolean>(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { znickname, isSaved, setUser } = useUserStore();
 
   const OnChangeUI = () => {
     setIsChange(!isChange);
   };
 
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!nickname) {
+      alert("닉네임을 입력해 주세요.");
+      return;
+    }
+
+    const formData = new FormData();
+    if (selectedFile) formData.append("avatar", selectedFile);
+    if (nickname) formData.append("nickname", nickname);
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Authentication token not found.");
+      return;
+    }
+    try {
+      const response = await api.patch("/profile", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.data.success) {
+        console.log("Profile updated successfully:", response.data);
+        setUser(response.data.id, response.data.nickname);
+        localStorage.setItem("avatar", response.data.avatar);
+        setProfile(response.data.avatar);
+        OnChangeUI();
+      }
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+    }
+  };
+
   useEffect(() => {
     const fetchUserData = async () => {
       const token = localStorage.getItem("token");
+      const avatar = localStorage.getItem("avatar");
       if (token && !isSaved) {
         try {
-          const response = await api.patch("/profile", {
+          const response = await api.get("/user", {
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
@@ -27,23 +73,44 @@ const MyPage: React.FC = () => {
           console.log(response);
           if (response.data.success) {
             setUser(response.data.id, response.data.nickname);
+            setNickname(response.data.nickname);
+            if (avatar) {
+              setProfile(avatar);
+            }
           }
         } catch (e) {
           console.error(e);
         }
+      } else {
+        if (znickname) setNickname(znickname);
+        if (avatar) setProfile(avatar);
       }
     };
-    if (isSaved && znickname) {
-      setNickname(znickname);
-    }
+    fetchUserData();
   }, []);
 
   return (
     <>
       {isChange ? (
         <Wrapper>
-          <ProfilePhoto>
-            <img />
+          <ProfilePhoto
+            isChanged={isChange}
+            onClick={() => refs.current?.click()}
+          >
+            <img
+              src={
+                selectedFile
+                  ? URL.createObjectURL(selectedFile)
+                  : profile || defaultProfile
+              }
+              alt="Profile"
+            />
+            <input
+              type="file"
+              ref={refs}
+              style={{ display: "none" }}
+              onChange={handleImageChange}
+            />
           </ProfilePhoto>
           <Input
             type="text"
@@ -52,12 +119,12 @@ const MyPage: React.FC = () => {
             placeholder="닉네임"
             onChange={(e) => setNickname(e.target.value)}
           />
-          <Button onClick={OnChangeUI}>완료</Button>
+          <Button onClick={handleSubmit}>완료</Button>
         </Wrapper>
       ) : (
         <Wrapper>
-          <ProfilePhoto>
-            <img />
+          <ProfilePhoto isChanged={isChange}>
+            <img src={profile ? profile : defaultProfile} alt="Profile" />
           </ProfilePhoto>
           <Layout>nickname : {nickname}</Layout>
           <Button onClick={OnChangeUI}>수정하기</Button>
@@ -129,21 +196,23 @@ const Button = styled.button<ButtonProps>`
     cursor: pointer;
   }
 `;
+interface IsProps {
+  isChanged?: boolean;
+}
 
-const ProfilePhoto = styled.div`
+const ProfilePhoto = styled.div<IsProps>`
   width: 120px;
   height: 120px;
   border-radius: 50%;
   margin-bottom: 30px;
   padding: 2px;
-  cursor: pointer;
+  cursor: ${({ isChanged }) => (isChanged ? "pointer" : "default")};
 
   img {
     width: 100%;
     height: 100%;
     display: block;
     object-fit: cover;
-    background-color: black;
     border: 2.5px solid #fff;
     border-radius: 50%;
   }
