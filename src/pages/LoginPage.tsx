@@ -3,38 +3,36 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { Colors } from "../styles/ColorStyle";
 import { login } from "../api/login";
-
-interface LoginFormValues {
-  id: string;
-  password: string;
-}
+import useUserStore from "../store/useUserStore";
+import api from "../api/axios";
 
 const LoginPage: React.FC = () => {
   const [id, setId] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const navigate = useNavigate();
+  const { setUser, isSaved } = useUserStore();
 
   const handleSubmit = () => {
     if (!id || !password) {
       alert("아이디와 패스워드를 모두 입력해주세요.");
       return;
     }
-    onFinish({ id, password });
+    onFinish();
   };
 
   const gotoJoin = () => {
     navigate("/join");
   };
 
-  const onFinish = async (values: LoginFormValues): Promise<void> => {
+  const onFinish = async () => {
     try {
-      const response = await login(values);
+      const response = await login({ id, password });
       console.log(response);
       if (response.status === 200 || response.status === 201) {
         if (response.data && response.data.accessToken) {
           const { accessToken } = response.data;
           localStorage.setItem("token", accessToken);
-          setId(values.id);
+          setUser(response.data.userId, response.data.nickname);
         }
         navigate("/main");
       }
@@ -45,11 +43,29 @@ const LoginPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      navigate("/korean");
-    }
-  }, []);
+    const fetchUserData = async () => {
+      const token = localStorage.getItem("token");
+      if (token && !isSaved) {
+        try {
+          const response = await api.get("/user", {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          console.log(response);
+          if (response.data.success) {
+            setUser(response.data.id, response.data.nickname);
+            navigate("/main");
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [navigate]);
 
   return (
     <Wrapper className="login-container">

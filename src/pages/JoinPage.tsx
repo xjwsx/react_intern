@@ -2,12 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { Colors } from "../styles/ColorStyle";
-import api from "../api/axios";
-
-interface IRegisterResponse {
-  message: string;
-  success: boolean;
-}
+import { join } from "../api/Join";
 
 const JoinPage: React.FC = () => {
   const [id, setId] = useState<string>("");
@@ -22,22 +17,19 @@ const JoinPage: React.FC = () => {
     }
 
     try {
-      const response = await api.post<IRegisterResponse>("/register", {
+      const response = await join({
         id,
         password,
         nickname,
       });
 
-      alert(response.data.message);
       if (response.data.success) {
+        alert(response.data.message);
         navigate("/");
       }
     } catch (error: any) {
       console.error("Registration error:", error);
-      alert(
-        "Failed to register. " +
-          (error.response?.data?.message || "Server error")
-      );
+      alert("가입 실패" + (error.response?.data?.message || "네트워크 오류"));
     }
   };
 
@@ -59,7 +51,7 @@ const JoinPage: React.FC = () => {
       />
       <Input
         type="text"
-        name="password"
+        name="nickname"
         value={nickname}
         placeholder="닉네임"
         onChange={(e) => setNickname(e.target.value)}
